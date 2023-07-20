@@ -1,6 +1,7 @@
 import { AUTO, Game, Physics, Scene, Types } from 'phaser';
 
 class MainScene extends Scene {
+  private cursors: Types.Input.Keyboard.CursorKeys | undefined;
   private platforms: Physics.Arcade.StaticGroup | undefined;
   private player: Types.Physics.Arcade.SpriteWithDynamicBody | undefined;
 
@@ -13,6 +14,9 @@ class MainScene extends Scene {
 
     // make the player and the platforms collide with each other
     this.physics.add.collider(this.player!, this.platforms!);
+
+    //
+    this.cursors = this.input.keyboard.createCursorKeys();
   }
 
   private setupPlatforms() {
@@ -76,6 +80,26 @@ class MainScene extends Scene {
       frameHeight: 48,
       frameWidth: 32,
     });
+  }
+
+  update() {
+    const cursors = this.cursors!;
+    const player = this.player!;
+
+    if (cursors.left.isDown) {
+      player.setVelocityX(-160);
+      player.anims.play('left', true);
+    } else if (cursors.right.isDown) {
+      player.setVelocityX(160);
+      player.anims.play('right', true);
+    } else {
+      player.setVelocityX(0);
+      player.anims.play('turn');
+    }
+
+    if (cursors.up.isDown) {
+      player.setVelocityY(-330);
+    }
   }
 }
 
