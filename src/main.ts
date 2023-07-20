@@ -10,6 +10,9 @@ class MainScene extends Scene {
 
     this.setupPlatforms();
     this.setupPlayer();
+
+    // make the player and the platforms collide with each other
+    this.physics.add.collider(this.player!, this.platforms!);
   }
 
   private setupPlatforms() {
@@ -82,6 +85,8 @@ const config: Types.Core.GameConfig = {
   physics: {
     arcade: {
       debug: false,
+      // this sets a gravity in the world; controls how the objects fall in the world
+      // the higher the number the harder they fall
       gravity: { y: 300 },
     },
     default: 'arcade',
