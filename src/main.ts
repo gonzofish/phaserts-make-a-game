@@ -1,9 +1,10 @@
-import { AUTO, Game, Physics, Scene, Types } from 'phaser';
+import { AUTO, Game, Math, Physics, Scene, Types } from 'phaser';
 
 class MainScene extends Scene {
   private cursors: Types.Input.Keyboard.CursorKeys | undefined;
   private platforms: Physics.Arcade.StaticGroup | undefined;
   private player: Types.Physics.Arcade.SpriteWithDynamicBody | undefined;
+  private stars: Physics.Arcade.Group | undefined;
 
   create() {
     // positions are via the center; so this asset is positioned so its center is at 400x300
@@ -11,11 +12,9 @@ class MainScene extends Scene {
 
     this.setupPlatforms();
     this.setupPlayer();
+    this.setupStars();
+    this.setupCollisions();
 
-    // make the player and the platforms collide with each other
-    this.physics.add.collider(this.player!, this.platforms!);
-
-    //
     this.cursors = this.input.keyboard.createCursorKeys();
   }
 
@@ -68,6 +67,38 @@ class MainScene extends Scene {
       key: 'right',
       repeat: -1,
     });
+  }
+
+  private setupStars() {
+    this.stars = this.physics.add.group({
+      key: 'star',
+      repeat: 11,
+      setXY: { stepX: 70, x: 12, y: 0 },
+    });
+
+    this.stars.children.iterate((child) => {
+      (child.body as Physics.Arcade.Body).setBounceY(
+        Math.FloatBetween(0.4, 0.8)
+      );
+    });
+  }
+
+  private setupCollisions() {
+    const stars = this.stars!;
+    const platforms = this.platforms!;
+    const player = this.player!;
+
+    // make the player and the platforms collide with each other
+    this.physics.add.collider(player, platforms);
+    this.physics.add.collider(stars, platforms);
+    this.physics.add.overlap(player, stars, this.collectStar, undefined, this);
+  }
+
+  private collectStar(
+    __player: Types.Physics.Arcade.GameObjectWithBody,
+    star: Types.Physics.Arcade.GameObjectWithBody
+  ) {
+    (star as Physics.Arcade.Sprite).disableBody(true, true);
   }
 
   preload() {
