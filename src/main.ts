@@ -1,9 +1,11 @@
-import { AUTO, Game, Math, Physics, Scene, Types } from 'phaser';
+import { AUTO, Game, GameObjects, Math, Physics, Scene, Types } from 'phaser';
 
 class MainScene extends Scene {
   private cursors: Types.Input.Keyboard.CursorKeys | undefined;
   private platforms: Physics.Arcade.StaticGroup | undefined;
   private player: Types.Physics.Arcade.SpriteWithDynamicBody | undefined;
+  private score = 0;
+  private scoreText: GameObjects.Text | undefined;
   private stars: Physics.Arcade.Group | undefined;
 
   create() {
@@ -14,8 +16,8 @@ class MainScene extends Scene {
     this.setupPlayer();
     this.setupStars();
     this.setupCollisions();
-
-    this.cursors = this.input.keyboard.createCursorKeys();
+    this.setupKeys();
+    this.setupScore();
   }
 
   private setupPlatforms() {
@@ -99,6 +101,21 @@ class MainScene extends Scene {
     star: Types.Physics.Arcade.GameObjectWithBody
   ) {
     (star as Physics.Arcade.Sprite).disableBody(true, true);
+
+    this.score += 10;
+    this.scoreText!.setText(`Score: ${this.score}`);
+  }
+
+  private setupKeys() {
+    this.cursors = this.input.keyboard.createCursorKeys();
+  }
+
+  private setupScore() {
+    this.score = 0;
+    this.scoreText = this.add.text(16, 16, 'score: 0', {
+      color: '#000',
+      fontSize: '32px',
+    });
   }
 
   preload() {
