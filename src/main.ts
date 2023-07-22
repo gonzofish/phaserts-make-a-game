@@ -1,6 +1,16 @@
-import { AUTO, Game, GameObjects, Math, Physics, Scene, Types } from 'phaser';
+import {
+  AUTO,
+  Game,
+  GameObjects,
+  Math,
+  Physics,
+  Scene,
+  Structs,
+  Types,
+} from 'phaser';
 
 class MainScene extends Scene {
+  private bombs: Physics.Arcade.Group | undefined;
   private cursors: Types.Input.Keyboard.CursorKeys | undefined;
   private platforms: Physics.Arcade.StaticGroup | undefined;
   private player: Types.Physics.Arcade.SpriteWithDynamicBody | undefined;
@@ -15,6 +25,7 @@ class MainScene extends Scene {
     this.setupPlatforms();
     this.setupPlayer();
     this.setupStars();
+    this.setupBombs();
     this.setupCollisions();
     this.setupKeys();
     this.setupScore();
@@ -78,32 +89,80 @@ class MainScene extends Scene {
       setXY: { stepX: 70, x: 12, y: 0 },
     });
 
-    this.stars.children.iterate((child) => {
-      (child.body as Physics.Arcade.Body).setBounceY(
-        Math.FloatBetween(0.4, 0.8)
-      );
-    });
+    (this.stars.children as Structs.Set<Physics.Arcade.Image>).iterate(
+      (child) => {
+        child.setBounceY(Math.FloatBetween(0.4, 0.8));
+      }
+    );
+  }
+
+  private setupBombs() {
+    this.bombs = this.physics.add.group();
   }
 
   private setupCollisions() {
+    const bombs = this.bombs!;
     const stars = this.stars!;
     const platforms = this.platforms!;
     const player = this.player!;
 
-    // make the player and the platforms collide with each other
+    // make collisions with platform
     this.physics.add.collider(player, platforms);
     this.physics.add.collider(stars, platforms);
+    this.physics.add.collider(bombs, platforms);
+
+    // setup collision so player can collect stars
     this.physics.add.overlap(player, stars, this.collectStar, undefined, this);
+
+    // setup collision for bomb to explode when a player hits it
+    this.physics.add.overlap(player, bombs, this.hitBomb, undefined, this);
   }
 
   private collectStar(
     __player: Types.Physics.Arcade.GameObjectWithBody,
     star: Types.Physics.Arcade.GameObjectWithBody
   ) {
-    (star as Physics.Arcade.Sprite).disableBody(true, true);
+    (star as Physics.Arcade.Image).disableBody(true, true);
 
-    this.score += 10;
+    this.updateScore(this.score + 10);
+
+    if (this.stars!.countActive(true) === 0) {
+      this.addBomb();
+    }
+  }
+
+  private addBomb() {
+    const bombs = this.bombs!;
+    const player = this.player!;
+
+    this.resetStars();
+
+    const x = player.x < 400 ? Math.Between(400, 800) : Math.Between(0, 400);
+    const bomb = bombs.create(x, 16, 'bomb') as Physics.Arcade.Body;
+
+    bomb
+      .setBounce(1, 1)
+      .setCollideWorldBounds(true)
+      .setVelocity(Math.Between(-200, 200), 20);
+  }
+
+  private hitBomb(player: Types.Physics.Arcade.GameObjectWithBody) {
+    this.physics.pause();
+
+    (player as Physics.Arcade.Sprite).setTint(0xff0000).anims.play('turn');
+  }
+
+  private updateScore(newScore = 0) {
+    this.score = newScore;
     this.scoreText!.setText(`Score: ${this.score}`);
+  }
+
+  private resetStars() {
+    (this.stars!.children as Structs.Set<Physics.Arcade.Image>).iterate(
+      (child) => {
+        child.disableBody(true, true).enableBody(true, child.x, 0, true, true);
+      }
+    );
   }
 
   private setupKeys() {
