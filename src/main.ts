@@ -8,6 +8,7 @@ import {
   Structs,
   Types,
 } from 'phaser';
+import Player from './objects/player';
 
 class MainScene extends Scene {
   private bombs: Physics.Arcade.Group | undefined;
@@ -19,7 +20,8 @@ class MainScene extends Scene {
     bombs: true,
   };
   private platforms: Physics.Arcade.StaticGroup | undefined;
-  private player: Types.Physics.Arcade.SpriteWithDynamicBody | undefined;
+  private player!: Player;
+  // private player: Types.Physics.Arcade.SpriteWithDynamicBody | undefined;
   private score = 0;
   private scoreText: GameObjects.Text | undefined;
   private stars: Physics.Arcade.Group | undefined;
@@ -62,41 +64,7 @@ class MainScene extends Scene {
   }
 
   private setupPlayer() {
-    this.setupPlayerSprite();
-    this.setupPlayerAnimations();
-  }
-
-  private setupPlayerSprite() {
-    this.player = this.physics.add.sprite(100, 450, 'dude');
-    // when the player jumps they'll bounce just a little bit
-    this.player.setBounce(0.2);
-    this.player.setCollideWorldBounds(true);
-  }
-
-  private setupPlayerAnimations() {
-    // moving left animation
-    this.anims.create({
-      frameRate: 10,
-      // generate the frames for the animation using slice 0 to 3 of the dude spritesheet
-      frames: this.anims.generateFrameNumbers('dude', { start: 0, end: 3 }),
-      key: 'left',
-      repeat: -1,
-    });
-
-    // turning/direction change animation
-    this.anims.create({
-      frameRate: 20,
-      frames: [{ frame: 4, key: 'dude' }],
-      key: 'turn',
-    });
-
-    // moving right animation
-    this.anims.create({
-      frameRate: 10,
-      frames: this.anims.generateFrameNumbers('dude', { start: 5, end: 8 }),
-      key: 'right',
-      repeat: -1,
-    });
+    this.player = new Player(this, 100, 450, 'dude');
   }
 
   private setupStars() {
@@ -121,7 +89,7 @@ class MainScene extends Scene {
     const bombs = this.bombs!;
     const stars = this.stars!;
     const platforms = this.platforms!;
-    const player = this.player!;
+    const player = this.player;
 
     // make collisions with platform
     this.physics.add.collider(player, platforms);
@@ -249,7 +217,7 @@ class MainScene extends Scene {
     this.gameOver = false;
     this.resetBombs();
     this.updateLevel();
-    this.resetPlayer();
+    this.player!.reset();
     this.resetStars();
     this.updateScore();
     this.physics.resume();
@@ -257,12 +225,6 @@ class MainScene extends Scene {
 
   private resetBombs() {
     this.bombs!.clear(true, true);
-  }
-
-  private resetPlayer() {
-    const player = this.player! as Physics.Arcade.Sprite;
-    player.clearTint().anims.stop();
-    player.setPosition(100, 450);
   }
 
   private resetStars() {
