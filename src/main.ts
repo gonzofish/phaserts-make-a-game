@@ -12,6 +12,12 @@ import {
 class MainScene extends Scene {
   private bombs: Physics.Arcade.Group | undefined;
   private cursors: Types.Input.Keyboard.CursorKeys | undefined;
+  private gameOver = false;
+  private level = 0;
+  private levelText: GameObjects.Text | undefined;
+  private options = {
+    bombs: true,
+  };
   private platforms: Physics.Arcade.StaticGroup | undefined;
   private player: Types.Physics.Arcade.SpriteWithDynamicBody | undefined;
   private score = 0;
@@ -22,6 +28,8 @@ class MainScene extends Scene {
     // positions are via the center; so this asset is positioned so its center is at 400x300
     this.add.image(400, 300, 'sky');
 
+    this.gameOver = false;
+    this.setupLevel();
     this.setupPlatforms();
     this.setupPlayer();
     this.setupStars();
@@ -29,6 +37,15 @@ class MainScene extends Scene {
     this.setupCollisions();
     this.setupKeys();
     this.setupScore();
+  }
+
+  private setupLevel() {
+    this.levelText = this.add.text(600, 16, '', {
+      align: 'right',
+      color: '#000',
+      fontSize: '32px',
+    });
+    this.updateLevel();
   }
 
   private setupPlatforms() {
@@ -85,7 +102,7 @@ class MainScene extends Scene {
   private setupStars() {
     this.stars = this.physics.add.group({
       key: 'star',
-      repeat: 11,
+      repeat: 1,
       setXY: { stepX: 70, x: 12, y: 0 },
     });
 
@@ -127,15 +144,18 @@ class MainScene extends Scene {
     this.updateScore(this.score + 10);
 
     if (this.stars!.countActive(true) === 0) {
-      this.addBomb();
+      this.updateLevel(this.level + 1);
+      this.resetStars();
+
+      if (this.options.bombs) {
+        this.addBomb();
+      }
     }
   }
 
   private addBomb() {
     const bombs = this.bombs!;
     const player = this.player!;
-
-    this.resetStars();
 
     const x = player.x < 400 ? Math.Between(400, 800) : Math.Between(0, 400);
     const bomb = bombs.create(x, 16, 'bomb') as Physics.Arcade.Body;
@@ -150,23 +170,23 @@ class MainScene extends Scene {
     this.physics.pause();
 
     (player as Physics.Arcade.Sprite).setTint(0xff0000).anims.play('turn');
-  }
-
-  private updateScore(newScore = 0) {
-    this.score = newScore;
-    this.scoreText!.setText(`Score: ${this.score}`);
-  }
-
-  private resetStars() {
-    (this.stars!.children as Structs.Set<Physics.Arcade.Image>).iterate(
-      (child) => {
-        child.disableBody(true, true).enableBody(true, child.x, 0, true, true);
-      }
-    );
+    this.gameOver = true;
   }
 
   private setupKeys() {
     this.cursors = this.input.keyboard.createCursorKeys();
+    // this.input.keyboard.on('keydown-ESC', this.openMenu, this);
+    this.input.keyboard.on('keydown', (event: KeyboardEvent) => {
+      if (event.shiftKey && (event.key === 'B' || event.key === 'b')) {
+        if (this.gameOver) {
+          console.info('WTF?');
+        }
+
+        this.toggleBombs();
+      } else if (this.gameOver && (event.key === 'R' || event.key === 'r')) {
+        this.resetGame();
+      }
+    });
   }
 
   private setupScore() {
@@ -207,6 +227,60 @@ class MainScene extends Scene {
     if (cursors.up.isDown) {
       player.setVelocityY(-330);
     }
+  }
+
+  private toggleBombs() {
+    this.options.bombs = !this.options.bombs;
+
+    if (!this.options.bombs) {
+      this.resetBombs();
+    } else {
+      this.restoreBombs();
+    }
+  }
+
+  private restoreBombs() {
+    for (let i = 0; i < this.level; i = i + 1) {
+      this.addBomb();
+    }
+  }
+
+  private resetGame() {
+    this.gameOver = false;
+    this.resetBombs();
+    this.updateLevel();
+    this.resetPlayer();
+    this.resetStars();
+    this.updateScore();
+    this.physics.resume();
+  }
+
+  private resetBombs() {
+    this.bombs!.clear(true, true);
+  }
+
+  private resetPlayer() {
+    const player = this.player! as Physics.Arcade.Sprite;
+    player.clearTint().anims.stop();
+    player.setPosition(100, 450);
+  }
+
+  private resetStars() {
+    (this.stars!.children as Structs.Set<Physics.Arcade.Image>).iterate(
+      (child) => {
+        child.disableBody(true, true).enableBody(true, child.x, 0, true, true);
+      }
+    );
+  }
+
+  private updateLevel(newLevel = 1) {
+    this.level = newLevel;
+    this.levelText!.setText(`Level: ${this.level}`);
+  }
+
+  private updateScore(newScore = 0) {
+    this.score = newScore;
+    this.scoreText!.setText(`Score: ${this.score}`);
   }
 }
 
